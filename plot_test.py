@@ -33,8 +33,8 @@ else:
     tk_camb_interp = akima_interp(k_clipped)
 
 
-plt.semilogx(k_class,tk_class, color='k', label='(class)^2')
-plt.semilogx(k_camb,tk_camb, '--',color='r', label='(camb)^2')
+plt.semilogx(k_class,tk_class**2, color='k', label='(class)^2')
+#plt.semilogx(k_camb,tk_camb**2, '--',color='r', label='(camb)^2')
 #plt.xlim(0.1,200)
 #plt.ylim(0.5, 1.5)
 
