@@ -16,7 +16,7 @@ The validation target is `test_transfer_z99.dat`, a CAMB-generated CDM transfer 
 
 - [x] Milestone 1: Core conversion logic (density-only) — produce columns 0–9 and validate against `test_transfer_z99.dat`.
 - [x] Milestone 2: Add velocity conversion — produce columns 10–12 and validate.
-- [ ] Milestone 3: Generality — confirm the script works on both CDM-only and dmeff CLASS outputs.
+- [x] Milestone 3: Generality — confirm the script works on both CDM-only and dmeff CLASS outputs.
 
 
 ## Surprises & Discoveries
@@ -47,7 +47,7 @@ The validation target is `test_transfer_z99.dat`, a CAMB-generated CDM transfer 
 
 ## Outcomes & Retrospective
 
-(To be filled after completion.)
+All three milestones complete. The script `class_to_camb.py` correctly converts CLASS transfer functions to CAMB 13-column format for both CDM-only (14-column) and dmeff (16-column) CLASS outputs. Density columns validated to <0.2% against CAMB reference. Velocity conversion formula verified correct by hand computation. Open item: synchronous-gauge velocities differ fundamentally from CAMB's Newtonian-gauge velocities — revisit if MUSIC requires Newtonian-gauge v_b.
 
 
 ## Context and Orientation

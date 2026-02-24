@@ -14,7 +14,7 @@ k_camb = data_camb[:,0]
 tk_camb = data_camb[:, 1]
 
 k_class = data_class[:,0]
-tk_class = data_class[:, 3]
+tk_class = data_class[:, 1]
 
 
 # Hybrid interpolation: use log-log for positive data, Akima for oscillatory/negative
