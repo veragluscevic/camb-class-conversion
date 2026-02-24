@@ -91,10 +91,21 @@ def class_to_camb(tk_file, bg_file, h, omega_cdm, omega_b, z, output_file):
     T_no_nu = zeros
     T_total_de = zeros
 
-    # Velocity columns: zero for Milestone 1
-    v_cdm = zeros
-    v_b = zeros
-    v_bc = zeros
+    # Velocity columns: v = (1+z) * theta / (kh^2 * H(z))
+    vel_factor = (1.0 + z) / (kh2 * H_z)
+
+    # v_CDM: use t_dmeff if present (nonzero for dmeff runs), else t_cdm (zero in sync gauge)
+    if 't_dmeff' in col_map:
+        theta_cdm = data[:, col_map['t_dmeff']]
+    else:
+        theta_cdm = get_col(data, col_map, 't_cdm')
+    v_cdm = vel_factor * theta_cdm
+
+    # v_b: baryon velocity from t_b
+    theta_b = get_col(data, col_map, 't_b')
+    v_b = vel_factor * theta_b
+
+    v_bc = v_b - v_cdm
 
     output = np.column_stack([
         k,          # 0: k/h

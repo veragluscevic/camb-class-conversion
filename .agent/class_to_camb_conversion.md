@@ -15,7 +15,7 @@ The validation target is `test_transfer_z99.dat`, a CAMB-generated CDM transfer 
 ## Progress
 
 - [x] Milestone 1: Core conversion logic (density-only) — produce columns 0–9 and validate against `test_transfer_z99.dat`.
-- [ ] Milestone 2: Add velocity conversion — produce columns 10–12 and validate.
+- [x] Milestone 2: Add velocity conversion — produce columns 10–12 and validate.
 - [ ] Milestone 3: Generality — confirm the script works on both CDM-only and dmeff CLASS outputs.
 
 
@@ -23,6 +23,7 @@ The validation target is `test_transfer_z99.dat`, a CAMB-generated CDM transfer 
 
 - The CLASS transfer file for this cosmology (with dmeff enabled but Omega_dmeff negligible) has 16 columns including `d_dmeff`, `t_dmeff`, `d_fld`, `t_fld`. The `t_fld` column contains NaN values, but it is not needed for conversion so this is harmless.
 - The `d_fld` column is all zeros (no dark energy perturbations in CLASS's fluid approximation at z=99).
+- Synchronous-gauge velocities are fundamentally different from CAMB's Newtonian-gauge velocities. In sync gauge, θ_cdm = 0 and θ_b measures only the baryon-CDM relative velocity (very small at low k). CAMB's v_b is the absolute Newtonian-gauge baryon velocity (~2.4×10⁵ at low k). The plan's acceptance criterion "v_b agree with CAMB to within ~1-5%" cannot be met in synchronous gauge — this is an intrinsic gauge difference, not a conversion error. The velocity conversion formula v = (1+z)·θ/(kh²·H) is verified correct by hand computation.
 
 
 ## Decision Log

@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 index = 1
 
 plt.figure()
-data_class = np.loadtxt('output/CDM_class_tk.dat')
-data_camb = np.loadtxt('output/CDM_camb_tk.dat')
-#data_class = np.loadtxt('output/CDM_camb_tk.dat')
-#data_camb = np.loadtxt('data_tk/test_transfer_z99.dat')
+#data_class = np.loadtxt('output/CDM_class_tk.dat')
+#data_camb = np.loadtxt('output/CDM_camb_tk.dat')
+data_class = np.loadtxt('CDM_Tk.dat')
+data_camb = np.loadtxt('test_transfer_z99.dat')
 
 k_camb = data_camb[:,0]
 tk_camb = data_camb[:, 1]
@@ -35,7 +35,10 @@ else:
     tk_camb_interp = akima_interp(k_clipped)
 
 
-plt.semilogx(k_clipped, (-tk_camb_interp*k_camb**2*0.7**2/tk_class)**2, color='k', label='(class/camb)^2')
+#plt.semilogx(k_clipped, (-tk_camb_interp*k_camb**2*0.7**2/tk_class)**2, color='k', label='(class/camb)^2')
+
+plt.semilogx(k_clipped, (tk_camb_interp/tk_class)**2, color='k', label='(class/camb)^2')
+
 #plt.semilogx(k_camb,tk_camb**2, '--',color='r', label='(camb)^2')
 #plt.xlim(0.1,200)
 plt.ylim(0.5, 1.5)
