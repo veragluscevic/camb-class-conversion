@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import Akima1DInterpolator
 import matplotlib.pyplot as plt
 
-index = 1
+index = 3
 
 plt.figure()
 #data_class = np.loadtxt('output/CDM_class_tk.dat')
@@ -11,10 +11,10 @@ data_class = np.loadtxt('CDM_Tk.dat')
 data_camb = np.loadtxt('test_transfer_z99.dat')
 
 k_camb = data_camb[:,0]
-tk_camb = data_camb[:, 1]
+tk_camb = data_camb[:, index]
 
 k_class = data_class[:,0]
-tk_class = data_class[:, 1]
+tk_class = data_class[:, index]
 
 
 # Hybrid interpolation: use log-log for positive data, Akima for oscillatory/negative
