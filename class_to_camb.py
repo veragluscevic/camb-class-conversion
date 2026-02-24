@@ -78,58 +78,50 @@ def class_to_camb(tk_sync_file, tk_newt_file, bg_file, h, omega_cdm, omega_b,
     else:
         d_dm = get_col(sync_data, sync_map, 'd_cdm')
     d_b = get_col(sync_data, sync_map, 'd_b')
-    d_g = get_col(sync_data, sync_map, 'd_g')
-    d_ur = get_col(sync_data, sync_map, 'd_ur')
-    phi = get_col(sync_data, sync_map, 'phi')
-    psi = get_col(sync_data, sync_map, 'psi')
+
 
     T_cdm = -d_dm / kh2
     T_b = -d_b / kh2
-    T_g = -d_g / kh2
-    T_ur = -d_ur / kh2
-
+  
     # Total matter (DM + baryons only, excluding radiation).
     # Can't use CLASS's d_tot because it includes radiation (~3% at z=99).
     omega_m = omega_cdm + omega_b
     d_total = (omega_cdm * d_dm + omega_b * d_b) / omega_m
     T_total = -d_total / kh2
 
-    T_weyl = -(phi + psi) / 2.0
-
-    zeros = np.zeros(len(k))
-    T_mass_nu = zeros
-    T_no_nu = zeros
-    T_total_de = zeros
-
     # --- Velocity columns from Newtonian gauge ---
     # CAMB velocity convention uses Newtonian gauge: v = (1+z)*theta/(kh^2*H)
     vel_factor = (1.0 + z) / (kh2 * H_z)
 
-    if use_dmeff and 't_dmeff' in newt_map:
+    if 't_dmeff' in newt_map:
         theta_dm = get_col(newt_data, newt_map, 't_dmeff')
     else:
         theta_dm = get_col(newt_data, newt_map, 't_cdm')
     theta_b = get_col(newt_data, newt_map, 't_b')
     v_cdm = vel_factor * theta_dm
     v_b = vel_factor * theta_b
-    v_bc = v_b - v_cdm
 
-    # TRUSTED columns (validated against CAMB):
+    zeros = np.zeros(len(k))
+    T_g = zeros
+    T_ur = zeros
+    T_mass_nu = zeros
+    T_no_nu = zeros
+    T_total_de = zeros
+    T_weyl = zeros
+    v_bc = v_b - v_cdm
+  
+
+    # COMPUTED columns (validated against CAMB):
     #   0  k/h        — directly from CLASS
     #   1  CDM        — from d_dmeff if present, else d_cdm (sync gauge)
     #   2  baryon     — from sync-gauge d_b
     #   6  total      — matter-only weighted sum from sync gauge
-    #   10 v_CDM      — from t_dmeff if present, else t_cdm (Newtonian gauge)
+    #   10 v_CDM      — always from t_dmeff if present, else t_cdm (Newtonian gauge)
     #   11 v_b        — from Newtonian-gauge t_b
-    #   12 v_b-v_c    — derived
+    #   12 v_b-v_c    — derived from columns 11 and 10
     #
-    # NOT TRUSTWORTHY — filled for format compliance only:
-    #   3  photon     — sync-gauge d_g; oscillation phase differs from CAMB
-    #   4  nu         — sync-gauge d_ur; same oscillation-phase issue
-    #   5  mass_nu    — zero (CLASS doesn't provide)
-    #   7  no_nu      — zero placeholder
-    #   8  total_de   — zero placeholder
-    #   9  Weyl       — from phi+psi; correct but not used by MUSIC
+    # ZERO PLACEHOLDERS (format compliance only):
+    #   3  photon, 4  nu, 5  mass_nu, 7  no_nu, 8  total_de, 9  Weyl
     #
     # MUSIC only reads columns 0, 1, 2, 6, 10, 11.
     output = np.column_stack([
