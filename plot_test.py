@@ -2,12 +2,12 @@ import numpy as np
 from scipy.interpolate import Akima1DInterpolator
 import matplotlib.pyplot as plt
 
-index = 11
+index = 1
 
 plt.figure()
 #data_class = np.loadtxt('output/CDM_class_tk.dat')
 #data_camb = np.loadtxt('output/CDM_camb_tk.dat')
-data_class = np.loadtxt('test2.dat')
+data_class = np.loadtxt('test_CDM.dat')
 data_camb = np.loadtxt('test_transfer_z99.dat')
 
 k_camb = data_camb[:,0]
@@ -37,7 +37,7 @@ else:
 
 #plt.semilogx(k_clipped, (-tk_camb_interp*k_camb**2*0.7**2/tk_class)**2, color='k', label='(class/camb)^2')
 
-plt.semilogx(k_clipped, (tk_camb_interp/tk_class)**2, color='k', label='(camb/class)^2')
+plt.semilogx(k_clipped, (tk_camb_interp/tk_class)**2, color='k', label='(tk_camb/tk_class)^2')
 
 #plt.semilogx(k_camb,tk_camb**2, '--',color='r', label='(camb)^2')
 #plt.xlim(0.1,200)
