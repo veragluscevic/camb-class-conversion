@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import Akima1DInterpolator
 import matplotlib.pyplot as plt
 
-index = 2
+index = 3
 
 plt.figure()
 #data_class = np.loadtxt('output/CDM_class_tk.dat')
