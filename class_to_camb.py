@@ -177,15 +177,15 @@ def main():
                         help='Redshift (default: 99)')
     parser.add_argument('-o', '--output', default='CDM_Tk.dat',
                         help='Output filename (default: CDM_Tk.dat)')
-    parser.add_argument('--dmeff_column', default=True,
-                        action=argparse.BooleanOptionalAction,
-                        help='Use d_dmeff/t_dmeff for CDM column if present '
-                             '(default: True; use --no-dmeff_column to force d_cdm)')
+    parser.add_argument('--use-cdm_column', default=False,
+                        action='store_true',
+                        help='Force using d_cdm/t_cdm instead of d_dmeff/t_dmeff '
+                             'for the CDM column (default: use dmeff if present)')
     args = parser.parse_args()
 
     class_to_camb(args.tk_sync_file, args.tk_newt_file, args.bg_file,
                   args.h, args.omega_cdm, args.omega_b, args.z, args.output,
-                  use_dmeff=args.dmeff_column)
+                  use_dmeff=not args.use_cdm_column)
 
 
 if __name__ == '__main__':
