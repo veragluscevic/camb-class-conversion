@@ -77,7 +77,8 @@ def class_to_camb(tk_file, bg_file, h, omega_cdm, omega_b, z, output_file):
     T_g = -d_g / kh2
     T_ur = -d_ur / kh2
 
-    # Total matter: (Omega_cdm * delta_cdm + Omega_b * delta_b) / (Omega_cdm + Omega_b)
+    # Total matter (CDM + baryons only, excluding radiation).
+    # Can't use CLASS's d_tot because it includes radiation (~3% at z=99).
     omega_m = omega_cdm + omega_b
     d_total = (omega_cdm * d_cdm + omega_b * d_b) / omega_m
     T_total = -d_total / kh2
@@ -107,17 +108,35 @@ def class_to_camb(tk_file, bg_file, h, omega_cdm, omega_b, z, output_file):
 
     v_bc = v_b - v_cdm
 
+    # TRUSTED columns (validated against CAMB to <0.2%):
+    #   0  k/h        — directly from CLASS
+    #   1  CDM        — from d_cdm, validated
+    #   2  baryon     — from d_b, validated
+    #   6  total      — matter-only weighted sum, validated
+    #   11 v_b        — from t_b (sync gauge; differs from CAMB's Newtonian gauge)
+    #   12 v_b-v_c    — derived from v_b and v_CDM
+    #
+    # NOT TRUSTWORTHY — filled for format compliance but not validated for use:
+    #   3  photon     — sync-gauge d_g; oscillation phase differs from CAMB by up to ~70%
+    #   4  nu         — sync-gauge d_ur; same oscillation-phase issue as photon
+    #   5  mass_nu    — hardcoded zero (CLASS doesn't provide this)
+    #   7  no_nu      — hardcoded zero (would need Omega-weighted combination)
+    #   8  total_de   — hardcoded zero (would need dark energy perturbations)
+    #   9  Weyl       — from phi+psi; ~0.2% vs CAMB but not used by MUSIC
+    #   10 v_CDM      — zero in sync gauge for CDM-only; nonzero only for dmeff runs
+    #
+    # MUSIC only reads columns 0, 1, 2, 6, 10, 11 — all others are discarded.
     output = np.column_stack([
         k,          # 0: k/h
         T_cdm,      # 1: CDM
         T_b,        # 2: baryon
-        T_g,        # 3: photon
-        T_ur,       # 4: nu
-        T_mass_nu,  # 5: mass_nu
+        T_g,        # 3: photon          (not trustworthy)
+        T_ur,       # 4: nu              (not trustworthy)
+        T_mass_nu,  # 5: mass_nu         (zero placeholder)
         T_total,    # 6: total
-        T_no_nu,    # 7: no_nu
-        T_total_de, # 8: total_de
-        T_weyl,     # 9: Weyl
+        T_no_nu,    # 7: no_nu           (zero placeholder)
+        T_total_de, # 8: total_de        (zero placeholder)
+        T_weyl,     # 9: Weyl            (not used by MUSIC)
         v_cdm,      # 10: v_CDM
         v_b,        # 11: v_b
         v_bc,       # 12: v_b-v_c
