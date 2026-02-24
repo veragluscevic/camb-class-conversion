@@ -55,22 +55,30 @@ def get_col(data, col_map, name, fallback=None):
     return np.zeros(len(data))
 
 
-def class_to_camb(tk_file, bg_file, h, omega_cdm, omega_b, z, output_file):
-    """Main conversion: read CLASS files, compute 13 CAMB columns, write output."""
-    col_map, data = parse_class_header(tk_file)
+def class_to_camb(tk_sync_file, tk_newt_file, bg_file, h, omega_cdm, omega_b,
+                  z, output_file):
+    """Main conversion: read CLASS files, compute 13 CAMB columns, write output.
+
+    Uses two CLASS transfer function files:
+      - tk_sync_file: synchronous gauge (for density columns — CAMB convention)
+      - tk_newt_file: Newtonian gauge (for velocity columns — CAMB convention)
+    """
+    sync_map, sync_data = parse_class_header(tk_sync_file)
+    newt_map, newt_data = parse_class_header(tk_newt_file)
     H_z = read_background_hubble(bg_file, z)
 
-    k = data[:, col_map['k']]  # h/Mpc
+    k = sync_data[:, sync_map['k']]  # h/Mpc
     kh = k * h  # 1/Mpc
     kh2 = kh ** 2
 
-    # Density transfers: T_CAMB = -delta / (k*h)^2
-    d_cdm = get_col(data, col_map, 'd_cdm')
-    d_b = get_col(data, col_map, 'd_b')
-    d_g = get_col(data, col_map, 'd_g')
-    d_ur = get_col(data, col_map, 'd_ur')
-    phi = get_col(data, col_map, 'phi')
-    psi = get_col(data, col_map, 'psi')
+    # --- Density columns from synchronous gauge ---
+    # CAMB density convention uses sync gauge: T = -delta_sync / (k*h)^2
+    d_cdm = get_col(sync_data, sync_map, 'd_cdm')
+    d_b = get_col(sync_data, sync_map, 'd_b')
+    d_g = get_col(sync_data, sync_map, 'd_g')
+    d_ur = get_col(sync_data, sync_map, 'd_ur')
+    phi = get_col(sync_data, sync_map, 'phi')
+    psi = get_col(sync_data, sync_map, 'psi')
 
     T_cdm = -d_cdm / kh2
     T_b = -d_b / kh2
@@ -83,49 +91,41 @@ def class_to_camb(tk_file, bg_file, h, omega_cdm, omega_b, z, output_file):
     d_total = (omega_cdm * d_cdm + omega_b * d_b) / omega_m
     T_total = -d_total / kh2
 
-    # Weyl potential: -(phi + psi) / 2
     T_weyl = -(phi + psi) / 2.0
 
-    # Zeroed columns
     zeros = np.zeros(len(k))
     T_mass_nu = zeros
     T_no_nu = zeros
     T_total_de = zeros
 
-    # Velocity columns: v = (1+z) * theta / (kh^2 * H(z))
+    # --- Velocity columns from Newtonian gauge ---
+    # CAMB velocity convention uses Newtonian gauge: v = (1+z)*theta/(kh^2*H)
     vel_factor = (1.0 + z) / (kh2 * H_z)
 
-    # v_CDM: use t_dmeff if present (nonzero for dmeff runs), else t_cdm (zero in sync gauge)
-    if 't_dmeff' in col_map:
-        theta_cdm = data[:, col_map['t_dmeff']]
-    else:
-        theta_cdm = get_col(data, col_map, 't_cdm')
+    theta_cdm = get_col(newt_data, newt_map, 't_cdm')
+    theta_b = get_col(newt_data, newt_map, 't_b')
     v_cdm = vel_factor * theta_cdm
-
-    # v_b: baryon velocity from t_b
-    theta_b = get_col(data, col_map, 't_b')
     v_b = vel_factor * theta_b
-
     v_bc = v_b - v_cdm
 
-    # TRUSTED columns (validated against CAMB to <0.2%):
+    # TRUSTED columns (validated against CAMB):
     #   0  k/h        — directly from CLASS
-    #   1  CDM        — from d_cdm, validated
-    #   2  baryon     — from d_b, validated
-    #   6  total      — matter-only weighted sum, validated
-    #   11 v_b        — from t_b (sync gauge; differs from CAMB's Newtonian gauge)
-    #   12 v_b-v_c    — derived from v_b and v_CDM
+    #   1  CDM        — from sync-gauge d_cdm
+    #   2  baryon     — from sync-gauge d_b
+    #   6  total      — matter-only weighted sum from sync gauge
+    #   10 v_CDM      — from Newtonian-gauge t_cdm
+    #   11 v_b        — from Newtonian-gauge t_b
+    #   12 v_b-v_c    — derived
     #
-    # NOT TRUSTWORTHY — filled for format compliance but not validated for use:
-    #   3  photon     — sync-gauge d_g; oscillation phase differs from CAMB by up to ~70%
-    #   4  nu         — sync-gauge d_ur; same oscillation-phase issue as photon
-    #   5  mass_nu    — hardcoded zero (CLASS doesn't provide this)
-    #   7  no_nu      — hardcoded zero (would need Omega-weighted combination)
-    #   8  total_de   — hardcoded zero (would need dark energy perturbations)
-    #   9  Weyl       — from phi+psi; ~0.2% vs CAMB but not used by MUSIC
-    #   10 v_CDM      — zero in sync gauge for CDM-only; nonzero only for dmeff runs
+    # NOT TRUSTWORTHY — filled for format compliance only:
+    #   3  photon     — sync-gauge d_g; oscillation phase differs from CAMB
+    #   4  nu         — sync-gauge d_ur; same oscillation-phase issue
+    #   5  mass_nu    — zero (CLASS doesn't provide)
+    #   7  no_nu      — zero placeholder
+    #   8  total_de   — zero placeholder
+    #   9  Weyl       — from phi+psi; correct but not used by MUSIC
     #
-    # MUSIC only reads columns 0, 1, 2, 6, 10, 11 — all others are discarded.
+    # MUSIC only reads columns 0, 1, 2, 6, 10, 11.
     output = np.column_stack([
         k,          # 0: k/h
         T_cdm,      # 1: CDM
@@ -155,8 +155,10 @@ def class_to_camb(tk_file, bg_file, h, omega_cdm, omega_b, z, output_file):
 def main():
     parser = argparse.ArgumentParser(
         description='Convert CLASS transfer functions to CAMB 13-column format.')
-    parser.add_argument('tk_file',
-                        help='CLASS transfer function file (with density+velocity)')
+    parser.add_argument('tk_sync_file',
+                        help='CLASS transfer function file in synchronous gauge (densities)')
+    parser.add_argument('tk_newt_file',
+                        help='CLASS transfer function file in Newtonian gauge (velocities)')
     parser.add_argument('bg_file',
                         help='CLASS background file')
     parser.add_argument('--h', type=float, default=0.7,
@@ -171,8 +173,8 @@ def main():
                         help='Output filename (default: CDM_Tk.dat)')
     args = parser.parse_args()
 
-    class_to_camb(args.tk_file, args.bg_file, args.h,
-                  args.omega_cdm, args.omega_b, args.z, args.output)
+    class_to_camb(args.tk_sync_file, args.tk_newt_file, args.bg_file,
+                  args.h, args.omega_cdm, args.omega_b, args.z, args.output)
 
 
 if __name__ == '__main__':
