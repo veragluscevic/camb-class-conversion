@@ -31,6 +31,7 @@ The validation target is `test_transfer_z99.dat`, a CAMB-generated CDM transfer 
 - **MUSIC discards most columns.** Reading the MUSIC source code (`transfer_camb.cc`), MUSIC only uses columns 0 (k/h), 1 (CDM), 2 (baryon), 6 (total), 10 (v_CDM), 11 (v_b). All other columns — including photon, nu, mass_nu, no_nu, total_de, Weyl, v_b-v_c — are read into `dummy` and discarded. The photon/neutrino disagreement has no practical impact.
 - **CLASS's `d_tot` includes radiation**, not just matter. At z=99, radiation is ~3% of the non-Λ energy density, so using `d_tot` for CAMB's "total" column would introduce a ~3% systematic error. The matter-only total must be computed manually as (Ω_cdm·δ_cdm + Ω_b·δ_b)/(Ω_cdm + Ω_b), which is why omega_cdm and omega_b are still required as parameters.
 - All CLASS runs use `format = class` (not `format = camb`). The conversion from CLASS's δ to CAMB's T = −δ/(kh)² is done by the script, not by CLASS.
+- **When `Omega_dmeff` is negligible** (e.g., 1e-15 for validation), `d_dmeff` and `d_cdm` agree to ~10 significant digits. The `--dmeff_column` flag has no practical effect in this regime — a meaningful difference only appears with physically significant `Omega_dmeff`.
 - The cosmological parameters (h, Omega_cdm, Omega_b) could in principle be auto-extracted from the CLASS background file at z=0 (rho_b/rho_crit, rho_cdm/rho_crit, H₀×c/100), but this has not been implemented — they remain command-line arguments.
 
 
@@ -44,6 +45,11 @@ The validation target is `test_transfer_z99.dat`, a CAMB-generated CDM transfer 
 - Decision: Use d_cdm (only) for the "CDM" output column.
   Rationale: User requested this for the initial version. The dmeff density will be revisited later.
   Date: 2026-02-23
+  Status: **Superseded** by the `--dmeff_column` flag (2026-02-24).
+
+- Decision: Default to `d_dmeff`/`t_dmeff` for the CDM output column when present; controllable via `--dmeff_column` / `--no-dmeff_column` flag.
+  Rationale: In dmeff runs, dmeff IS the dark matter, so its transfer function should populate the CDM column. When `Omega_dmeff` is negligible (e.g., 1e-15), `d_dmeff` and `d_cdm` agree to ~10 significant digits, so the flag has no practical effect in validation runs. The `--no-dmeff_column` flag is available for explicitly forcing `d_cdm`.
+  Date: 2026-02-24
 
 - Decision: Match Rui's output style — zero out columns that CLASS cannot directly provide (mass_nu, no_nu, total_de) and populate only the columns Rui populated: k/h, CDM, baryon, total, v_CDM, v_b. Additionally populate photon, nu, and Weyl since CLASS provides these directly and `test_transfer_z99.dat` has them.
   Rationale: User wants to match Rui's script as closely as possible, but also wants to match `test_transfer_z99.dat` as a validation test. Populating photon/nu/Weyl gets us closer to the CAMB reference. Columns that require combining multiple species with density fractions (no_nu, total_de) are zeroed because Rui zeroed them and the exact CAMB definitions are ambiguous.
@@ -65,10 +71,10 @@ All four milestones complete. The script `class_to_camb.py` now takes two CLASS 
 | Column | Name   | Max deviation | Source                    |
 |--------|--------|---------------|---------------------------|
 | 0      | k/h    | exact         | CLASS k-grid              |
-| 1      | CDM    | 0.16%         | sync-gauge d_cdm          |
+| 1      | CDM    | 0.16%         | d_dmeff if present, else d_cdm (sync) |
 | 2      | baryon | 0.24%         | sync-gauge d_b            |
-| 6      | total  | 0.17%         | Ω-weighted d_cdm + d_b   |
-| 10     | v_CDM  | 0.17%         | Newtonian-gauge t_cdm     |
+| 6      | total  | 0.17%         | Ω-weighted d_dm + d_b    |
+| 10     | v_CDM  | 0.17%         | t_dmeff if present, else t_cdm (Newt) |
 | 11     | v_b    | 0.19%         | Newtonian-gauge t_b       |
 
 Columns 3 (photon), 4 (nu), 5 (mass_nu), 7 (no_nu), 8 (total_de), 9 (Weyl), 12 (v_b-v_c) are filled for format compliance but are not trustworthy or not used by MUSIC (see comments in `class_to_camb.py`).
@@ -204,11 +210,13 @@ In `class_to_camb.py`, the key functions:
     def read_background_hubble(filepath, z):
         """Read a CLASS background file, interpolate H(z), return H in 1/Mpc."""
 
-    def class_to_camb(tk_sync_file, tk_newt_file, bg_file, h, omega_cdm, omega_b, z, output_file):
+    def class_to_camb(tk_sync_file, tk_newt_file, bg_file, h, omega_cdm, omega_b,
+                      z, output_file, use_dmeff=True):
         """Main conversion: read two CLASS transfer files (sync gauge for densities,
-        Newtonian gauge for velocities) + background, compute 13 CAMB columns, write output."""
+        Newtonian gauge for velocities) + background, compute 13 CAMB columns, write output.
+        If use_dmeff=True (default), uses d_dmeff/t_dmeff for the CDM column when present."""
 
-Command-line interface via argparse with three positional args (sync transfer file, Newtonian transfer file, background file) and optional flags for cosmological parameters and output path.
+Command-line interface via argparse with three positional args (sync transfer file, Newtonian transfer file, background file) and optional flags for cosmological parameters, output path, and `--dmeff_column` / `--no-dmeff_column`.
 
 
 ## Artifacts and Notes
